@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Out-of-source extension builds
+build/
+*-build/
+*-build-*/
+CMakeLists.txt.user*
+CMakeCache.txt
+CMakeFiles/
+
+# Slicer scene/data saved while testing modules
+*.mrml
+*.mrb
+*.nrrd
+*.seq.nrrd
+SlicerTestingData/
+
+# Editors / IDEs
+.vscode/
+.idea/
+.vs/
+*.code-workspace
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+[Dd]esktop.ini
