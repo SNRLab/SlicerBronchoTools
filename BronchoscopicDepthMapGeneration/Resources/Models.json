@@ -1,0 +1,15 @@
+{
+  "models": [
+    {
+      "id": "6Level-ex-vivo-G_AB",
+      "title": "6Level-ex-vivo-G_AB",
+      "description": "Depth estimation generator of a Three Cycle-Consistent GAN (3cGAN) for 200 x 200 grayscale bronchoscopy images, trained on ex vivo bronchoscopic images. Artur Banach, Franklin King, Fumitaro Masaki, Hisashi Tsukada, and Nobuhiko Hata. \"Visually Navigated Bronchoscopy using three cycle-Consistent generative adversarial network for depth estimation.\" Medical Image Analysis 73 (2021): 102164.",
+      "network": "GeneratorResNet",
+      "residualBlocks": 9,
+      "inputSize": [200, 200],
+      "fileName": "6Level-ex-vivo-G_AB.pth",
+      "url": "https://github.com/SNRLab/Visually_Navigated_Bronchoscopy/releases/download/models-v1/6Level-ex-vivo-G_AB.pth",
+      "sha256": "a7429691374f3cc9ab62b46d36ceae9714c1bb2c675a555b758ceae135718640"
+    }
+  ]
+}

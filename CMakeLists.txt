@@ -4,13 +4,13 @@ project(BronchoTools)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "")
-set(EXTENSION_CATEGORY "IGT")
+set(EXTENSION_HOMEPAGE "https://github.com/SNRLab/SlicerBronchoTools")
+set(EXTENSION_CATEGORY "Endoscopy")
 set(EXTENSION_CONTRIBUTORS "Franklin King (SNR)")
 set(EXTENSION_DESCRIPTION "Tools supporting image-guided bronchoscopy")
-set(EXTENSION_ICONURL "")
-set(EXTENSION_SCREENSHOTURLS "")
-set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsLogo.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsScreenshot_1.png https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsScreenshot_2.png")
+set(EXTENSION_DEPENDS "PyTorch") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
 # Extension dependencies
@@ -20,6 +20,7 @@ include(${Slicer_USE_FILE})
 #-----------------------------------------------------------------------------
 # Extension modules
 add_subdirectory(VideoInput)
+add_subdirectory(BronchoscopicDepthMapGeneration)
 ## NEXT_MODULE
 
 #-----------------------------------------------------------------------------
