@@ -389,6 +389,7 @@ class VideoInputWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
     self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
+    self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndImportEvent, self.onSceneEndImport)
 
     self.initializeParameterNode()
     self.populateWebcamComboBox(installIfMissing=False)
@@ -414,6 +415,16 @@ class VideoInputWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     if self.parent.isEntered:
       self.initializeParameterNode()
 
+  def onSceneEndImport(self, caller, event):
+    # The node selections of a loaded scene are only available once all of its nodes are loaded. The refresh is
+    # delayed until the node selectors list the loaded nodes too (they are updated after the import).
+    qt.QTimer.singleShot(0, self.refreshParameterNode)
+
+  def refreshParameterNode(self):
+    self.logic.refreshParameterNode()
+    # The GUI can be updated before the parameter node wrapper reads the parameters again, so it is updated again
+    if self._parameterNode:
+      self.updateGUIFromParameterNode()
   def initializeParameterNode(self):
     self.setParameterNode(self.logic.getParameterNode())
 
@@ -1117,6 +1128,12 @@ class VideoInputLogic(ScriptedLoadableModuleLogic):
     if not self._parameterNode or self._parameterNode.parameterNode != parameterNode:
       self._parameterNode = VideoInputParameterNode(parameterNode)
     return self._parameterNode
+
+  def refreshParameterNode(self):
+    """Makes the parameter node wrapper read the parameters again, e.g. after a scene is loaded. The wrapper keeps the
+    selected nodes and reads them again when the parameter node is modified, but when a scene is loaded, the parameter
+    node is modified before the nodes it refers to are loaded, so they would be read as None."""
+    self.getParameterNode().parameterNode.Modified()
 
   # -- Dependencies
   def areDependenciesInstalled(self):
