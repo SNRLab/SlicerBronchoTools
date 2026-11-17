@@ -11,6 +11,7 @@
 - [Video Input](https://github.com/SNRLab/SlicerBronchoTools/wiki/Video-Input): streams a webcam, video file or image sequence into a volume.
 - [Bronchoscopic Depth Map Generation](https://github.com/SNRLab/SlicerBronchoTools/wiki/Bronchoscopic-Depth-Map-Generation): estimates depth maps and point clouds from monoscopic bronchoscope images.
 - [Endoluminal Phantom Builder](https://github.com/SNRLab/SlicerBronchoTools/wiki/Endoluminal-Phantom-Builder): builds a wall and a casting mold from a lumen segmentation to make a physical phantom.
+![Endoluminal Phantom Builder](Images/BronchoToolsScreenshot_3.jpg)
 
 ## Dependencies
 
