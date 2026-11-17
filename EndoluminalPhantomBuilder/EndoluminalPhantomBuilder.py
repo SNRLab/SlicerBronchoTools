@@ -1388,7 +1388,7 @@ class EndoluminalPhantomBuilderTest(ScriptedLoadableModuleTest):
       parameterNode.moldThickness = 1.5
       parameterNode.cutMoldTracheaFlat = True
       parameterNode.moldTracheaCutExtraDiameter = 10.0
-      parameterNode.moldSurfaceSmoothingFactor = 0.1
+      parameterNode.moldSurfaceSmoothingFactor = 0.5
       parameterNode.moldModel = None
 
   def runTest(self):
