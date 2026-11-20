@@ -7,7 +7,7 @@ project(BronchoTools)
 set(EXTENSION_HOMEPAGE "https://github.com/SNRLab/SlicerBronchoTools/wiki")
 set(EXTENSION_CATEGORY "Endoscopy")
 set(EXTENSION_CONTRIBUTORS "Franklin King (SNR)")
-set(EXTENSION_DESCRIPTION "Tools supporting image-guided bronchoscopy")
+set(EXTENSION_DESCRIPTION "Tools supporting image-guided bronchoscopy such as streaming video into Slicer, estimating depth maps and point clouds from a video, and building 3D-printable endoluminal phantoms")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsLogo.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsScreenshot_1.png https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsScreenshot_2.png https://raw.githubusercontent.com/SNRLab/SlicerBronchoTools/main/Images/BronchoToolsScreenshot_3.jpg")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
