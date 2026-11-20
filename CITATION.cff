@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+title: "BronchoTools"
+abstract: >-
+  3D Slicer extension containing tools for image-guided bronchoscopy: streaming video into Slicer, estimating depth
+  maps and point clouds from monoscopic bronchoscope images, and building physical phantoms of endoluminal
+  structures such as the airways.
+authors:
+  - given-names: Franklin
+    family-names: King
+    affiliation: "Surgical Navigation and Robotics Laboratory, Brigham and Women's Hospital"
+version: 1.0.0
+date-released: 2026-11-19
+license: BSD-3-Clause
+repository-code: "https://github.com/SNRLab/SlicerBronchoTools"
+url: "https://github.com/SNRLab/SlicerBronchoTools/wiki"
+keywords:
+  - 3D Slicer
+  - bronchoscopy
+  - image-guided therapy
+  - depth estimation
+  - phantom
+references:
+  - type: article
+    title: "Visually Navigated Bronchoscopy using three cycle-Consistent generative adversarial network for depth estimation"
+    authors:
+      - given-names: Artur
+        family-names: Banach
+      - given-names: Franklin
+        family-names: King
+      - given-names: Fumitaro
+        family-names: Masaki
+      - given-names: Hisashi
+        family-names: Tsukada
+      - given-names: Nobuhiko
+        family-names: Hata
+    journal: "Medical Image Analysis"
+    volume: 73
+    start: 102164
+    year: 2021
+    doi: "10.1016/j.media.2021.102164"
