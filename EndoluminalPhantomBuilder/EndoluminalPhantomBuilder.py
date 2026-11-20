@@ -65,9 +65,9 @@ class EndoluminalPhantomBuilderParameterNode:
   # Cut the end of the mold at the trachea flat across the centerline, like the wall
   cutMoldTracheaFlat: bool = True
   moldTracheaCutExtraDiameter: float = 10.0
-  # Smoothing factor of the surface made from the mold (0 to 1). It is low, as more smoothing makes the surface of a
-  # mold only a voxel or two thick collapse.
-  moldSurfaceSmoothingFactor: float = 0.1
+  # Smoothing factor of the surface made from the mold (0 to 1), set separately from the wall's. More smoothing can make
+  # the surface of a mold only a voxel or two thick collapse.
+  moldSurfaceSmoothingFactor: float = 0.5
   # Model that the mold is exported to. If there is none, "[mold segmentation name]_model" is created.
   moldModel: vtkMRMLModelNode | None
 # -------------------------------------- ----------  --------------------------------------
@@ -104,7 +104,6 @@ class WrappingLabel(qt.QLabel):
 
 class EndoluminalPhantomBuilderWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   ERROR_COLOR = "#E53935"
-  # The main action of a step, like the start buttons of the other modules. Muted while disabled.
   STEP_BUTTON_STYLE = ("QPushButton {background-color: #1565C0; color: white;} "
                        "QPushButton:hover {background-color: #1976D2;} "
                        "QPushButton:disabled {background-color: #3B4F66; color: #9AA5B1;}")
@@ -654,8 +653,6 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
   OPENING_SEARCH_DISTANCE = 50.0
   # The direction of the trachea at its endpoint is from the centerline this far (mm) into the trachea
   TRACHEA_DIRECTION_DISTANCE = 20.0
-  # Marks the centerline model and endpoints made by extractCenterline, which extracting again replaces
-  EXTRACTED_CENTERLINE_ATTRIBUTE = "EndoluminalPhantomBuilder.ExtractedCenterline"
 
   def __init__(self):
     ScriptedLoadableModuleLogic.__init__(self)
@@ -763,21 +760,12 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
     the centerline with the Extract Centerline button."""
     return hasattr(slicer.modules, "extractcenterline")
 
-  def getOrCreateExtractedNode(self, currentNode, className, name):
-    """Returns the current node if an earlier extraction made it, so extracting again replaces it, or a new node."""
-    if currentNode and currentNode.GetAttribute(self.EXTRACTED_CENTERLINE_ATTRIBUTE) == "true":
-      return currentNode
-    node = slicer.mrmlScene.AddNewNodeByClass(className, slicer.mrmlScene.GetUniqueNameByString(name))
-    node.SetAttribute(self.EXTRACTED_CENTERLINE_ATTRIBUTE, "true")
-    node.CreateDefaultDisplayNodes()
-    return node
-
   def extractCenterline(self):
     """Makes the centerline model and endpoints from the lumen segment with the Extract Centerline module of SlicerVMTK,
     the same way as its module does with the default settings: the endpoints are detected automatically (like its
     Auto-detect button) and the centerline is extracted between them. The widest endpoint (the trachea) is the start
-    point, and is first in the endpoints. Selects the results as the inputs, and returns the centerline model and
-    endpoints."""
+    point, and is first in the endpoints. The results are new nodes, which are selected as the inputs. Returns the
+    centerline model and endpoints."""
     if not self.isExtractCenterlineAvailable():
       raise RuntimeError("Extracting the centerline needs the Extract Centerline module of the SlicerVMTK extension.")
     lumenSegmentError = self.getLumenSegmentError()
@@ -798,15 +786,15 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
                                                             decimationAggressiveness=4.0, subdivide=False)
 
     baseName = self.getLumenSegment().GetName()
-    centerlineEndpoints = self.getOrCreateExtractedNode(parameterNode.centerlineEndpoints, "vtkMRMLMarkupsFiducialNode",
-                                                        baseName + " centerline endpoints")
-    centerlineModel = self.getOrCreateExtractedNode(parameterNode.centerlineModel, "vtkMRMLModelNode",
-                                                    baseName + " centerline")
-    # The surface is in the coordinates of the segmentation
+    centerlineEndpoints = slicer.mrmlScene.AddNewNodeByClass(
+      "vtkMRMLMarkupsFiducialNode", slicer.mrmlScene.GetUniqueNameByString(baseName + " centerline endpoints"))
+    centerlineModel = slicer.mrmlScene.AddNewNodeByClass(
+      "vtkMRMLModelNode", slicer.mrmlScene.GetUniqueNameByString(baseName + " centerline"))
     for node in [centerlineEndpoints, centerlineModel]:
+      node.CreateDefaultDisplayNodes()
+      # The surface is in the coordinates of the segmentation
       node.SetAndObserveTransformNodeID(lumenSegmentationNode.GetTransformNodeID())
 
-    centerlineEndpoints.RemoveAllControlPoints()
     networkPolyData = extractCenterlineLogic.extractNetwork(preprocessedSurface, centerlineEndpoints)
     endpointPositions = extractCenterlineLogic.getEndPoints(networkPolyData, startPointPosition=None)
     if len(endpointPositions) < 2:
@@ -919,22 +907,20 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
       segmentEditorWidget.setMRMLSegmentEditorNode(None)
       slicer.mrmlScene.RemoveNode(segmentEditorNode)
 
-  @classmethod
-  def hollowSegment(cls, segmentationNode, segmentId, thicknessMm):
+  def hollowSegment(self, segmentationNode, segmentId, thicknessMm):
     """Runs the Hollow effect of the Segment Editor on the segment, with the segment as the inside surface, so the
     shell grows outward from it."""
-    cls.applySegmentEditorEffect(segmentationNode, segmentId, "Hollow", {
+    self.applySegmentEditorEffect(segmentationNode, segmentId, "Hollow", {
       "ApplyToAllVisibleSegments": 0,
       "ShellMode": "INSIDE_SURFACE",
       "ShellThicknessMm": thicknessMm,
     })
 
-  @classmethod
-  def keepLargestIsland(cls, segmentationNode, segmentId):
+  def keepLargestIsland(self, segmentationNode, segmentId):
     """Runs the Islands effect of the Segment Editor on the segment, keeping only its largest connected piece (e.g.
     removing small pieces of wall left around the openings)."""
     # A minimum size of 0 keeps the largest piece however small it is
-    cls.applySegmentEditorEffect(segmentationNode, segmentId, "Islands", {
+    self.applySegmentEditorEffect(segmentationNode, segmentId, "Islands", {
       "Operation": "KEEP_LARGEST_ISLAND",
       "MinimumSize": 0,
     })
@@ -960,8 +946,7 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
     shape = (extent[5] - extent[4] + 1, extent[3] - extent[2] + 1, extent[1] - extent[0] + 1)
     return numpy_support.vtk_to_numpy(labelmap.GetPointData().GetScalars()).reshape(shape)
 
-  @classmethod
-  def getRegionAroundPoint(cls, labelmap, center, radius):
+  def getRegionAroundPoint(self, labelmap, center, radius):
     """Returns the index ranges (minimum and maximum i, j, k, within the extent of the labelmap) of the voxels within
     the radius of the center, and the positions of those voxels (k, j, i, 3). Returns None if there are none."""
     extent = labelmap.GetExtent()
@@ -979,25 +964,23 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
     positions = np.stack([i, j, k], axis=-1).astype(float) @ imageToWorldArray[:3, :3].T + imageToWorldArray[:3, 3]
     return minimumIjk, maximumIjk, positions
 
-  @classmethod
-  def getRegionArray(cls, labelmap, minimumIjk, maximumIjk):
+  def getRegionArray(self, labelmap, minimumIjk, maximumIjk):
     """Returns the voxels of the labelmap within the index ranges, as an array (k, j, i) that shares memory with it."""
     extent = labelmap.GetExtent()
-    return cls.getLabelmapArray(labelmap)[minimumIjk[2] - extent[4]:maximumIjk[2] - extent[4] + 1,
+    return self.getLabelmapArray(labelmap)[minimumIjk[2] - extent[4]:maximumIjk[2] - extent[4] + 1,
                                           minimumIjk[1] - extent[2]:maximumIjk[1] - extent[2] + 1,
                                           minimumIjk[0] - extent[0]:maximumIjk[0] - extent[0] + 1]
 
-  @classmethod
-  def measureLumenRadius(cls, lumenLabelmap, endpoint):
+  def measureLumenRadius(self, lumenLabelmap, endpoint):
     """Returns the radius of the largest sphere that fits in the lumen and reaches the endpoint, which is the radius of
     the lumen at the endpoint, or None if no sphere in the lumen reaches it (the endpoint is not at the lumen). The
     spheres are centered on voxels, so the radius is accurate to about a voxel."""
     import SimpleITK as sitk
-    region = cls.getRegionAroundPoint(lumenLabelmap, endpoint, cls.OPENING_SEARCH_DISTANCE)
+    region = self.getRegionAroundPoint(lumenLabelmap, endpoint, self.OPENING_SEARCH_DISTANCE)
     if not region:
       return None
     minimumIjk, maximumIjk, positions = region
-    lumen = cls.getRegionArray(lumenLabelmap, minimumIjk, maximumIjk) > 0
+    lumen = self.getRegionArray(lumenLabelmap, minimumIjk, maximumIjk) > 0
     if not np.any(lumen):
       return None
     # Distance from each lumen voxel to the nearest voxel outside the lumen. The region is padded with voxels outside
@@ -1016,28 +999,26 @@ class EndoluminalPhantomBuilderLogic(ScriptedLoadableModuleLogic):
       return None
     return float(np.max(sphereRadii[reaching]))
 
-  @classmethod
-  def eraseSphere(cls, labelmap, center, radius):
+  def eraseSphere(self, labelmap, center, radius):
     """Clears the voxels of the labelmap within the sphere. Returns the number of voxels cleared."""
-    region = cls.getRegionAroundPoint(labelmap, center, radius)
+    region = self.getRegionAroundPoint(labelmap, center, radius)
     if not region:
       return 0
     minimumIjk, maximumIjk, positions = region
-    array = cls.getRegionArray(labelmap, minimumIjk, maximumIjk)
+    array = self.getRegionArray(labelmap, minimumIjk, maximumIjk)
     clear = (np.linalg.norm(positions - center, axis=-1) <= radius) & (array > 0)
     array[clear] = 0
     labelmap.Modified()
     return int(clear.sum())
 
-  @classmethod
-  def eraseCylinder(cls, labelmap, base, direction, radius, length):
+  def eraseCylinder(self, labelmap, base, direction, radius, length):
     """Clears the voxels of the labelmap within the cylinder that starts at the base and extends along the direction
     (a unit vector) for the length. Returns the number of voxels cleared."""
-    region = cls.getRegionAroundPoint(labelmap, base + direction * length / 2, math.hypot(radius, length / 2))
+    region = self.getRegionAroundPoint(labelmap, base + direction * length / 2, math.hypot(radius, length / 2))
     if not region:
       return 0
     minimumIjk, maximumIjk, positions = region
-    array = cls.getRegionArray(labelmap, minimumIjk, maximumIjk)
+    array = self.getRegionArray(labelmap, minimumIjk, maximumIjk)
     relative = positions - base
     axial = relative @ direction
     radial = np.linalg.norm(relative - axial[..., np.newaxis] * direction, axis=-1)
@@ -1865,13 +1846,6 @@ class EndoluminalPhantomBuilderTest(ScriptedLoadableModuleTest):
     self.assertFalse(centerlineEndpoints.GetNthControlPointSelected(0))
     self.assertGreater(centerlineModel.GetPolyData().GetNumberOfLines(), 0)
 
-    # Extracting again replaces the extracted nodes instead of adding new ones
-    modelCount = len(slicer.util.getNodesByClass("vtkMRMLModelNode"))
-    centerlineModel2, centerlineEndpoints2 = self.logic.extractCenterline()
-    self.assertIs(centerlineModel2, centerlineModel)
-    self.assertIs(centerlineEndpoints2, centerlineEndpoints)
-    self.assertEqual(len(slicer.util.getNodesByClass("vtkMRMLModelNode")), modelCount)
-
     # The wall can be made from the extracted centerline, with the trachea cut flat
     self.logic.createWall()
     self.assertEqual([opening['error'] for opening in self.logic.lastOpenings], [None] * 3)
@@ -2009,18 +1983,21 @@ class EndoluminalPhantomBuilderTest(ScriptedLoadableModuleTest):
       massProperties.SetInputData(surface)
       massProperties.Update()
       return massProperties.GetSurfaceArea()
-    self.assertEqual(float(moldSegmentationNode.GetSegmentation().GetConversionParameter(smoothingFactorName)), 0.1)
-    self.assertEqual(float(wallSegmentationNode.GetSegmentation().GetConversionParameter(smoothingFactorName)),
-                     parameterNode.surfaceSmoothingFactor)
+    def getSmoothingFactor(segmentationNode):
+      return float(segmentationNode.GetSegmentation().GetConversionParameter(smoothingFactorName))
+    # By default, the mold is smoothed like the wall
+    self.assertEqual(getSmoothingFactor(moldSegmentationNode), parameterNode.moldSurfaceSmoothingFactor)
+    self.assertEqual(getSmoothingFactor(moldSegmentationNode), getSmoothingFactor(wallSegmentationNode))
     smoothedArea = getSurfaceArea(moldSegmentationNode, moldSegmentId)
+    wallArea = getSurfaceArea(wallSegmentationNode, wallSegmentId)
+    # Changing the mold smoothing changes only the mold
     parameterNode.moldSurfaceSmoothingFactor = 0.0
     self.logic.updateSurfaces()
-    unsmoothedArea = getSurfaceArea(moldSegmentationNode, moldSegmentId)
-    self.assertGreater(smoothedArea, 0.9 * unsmoothedArea)
-
-    parameterNode.moldSurfaceSmoothingFactor = parameterNode.surfaceSmoothingFactor
-    self.logic.updateSurfaces()
-    self.assertLess(getSurfaceArea(moldSegmentationNode, moldSegmentId), 0.5 * unsmoothedArea)
+    self.assertEqual(getSmoothingFactor(moldSegmentationNode), 0.0)
+    self.assertEqual(getSmoothingFactor(wallSegmentationNode), parameterNode.surfaceSmoothingFactor)
+    self.assertAlmostEqual(getSurfaceArea(wallSegmentationNode, wallSegmentId), wallArea, delta=1e-6 * wallArea)
+    # Smoothing makes the surface of the mold smaller
+    self.assertLess(smoothedArea, getSurfaceArea(moldSegmentationNode, moldSegmentId))
     self.delayDisplay("Mold creation test passed")
 
   def test_ExportMoldModel(self):
